@@ -3,11 +3,11 @@ import os
 
 os.makedirs("dataset", exist_ok=True)
 
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-cap.set(cv2.CAP_PROP_ZOOM, 2.9)
+# cap.set(cv2.CAP_PROP_ZOOM, 2.9)
 cap.set(cv2.CAP_PROP_FOCUS, 1159)
 cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 #2783
@@ -27,9 +27,20 @@ while True:
 
     key = cv2.waitKey(1)
     if key == ord('c'):
-        filename = f"dataset/img_{i:04d}.jpg"
-        cv2.imwrite(filename, frame)
-        print("Saved", filename)
+        # cv2.imshow("Captured Frame", frame)
+        # cv2.waitKey(1)
+
+        filename = input("Enter filename (without extension): ").strip()
+        if filename:
+            path = f"dataset/{filename}.jpg"
+            cv2.imwrite(path, frame)
+            print("Saved:", path)
+        else:
+            print("Filename empty, not saved")
+    # if key == ord('c'):
+    #     filename = f"dataset/img_{i:04d}.jpg"
+    #     cv2.imwrite(filename, frame)
+    #     print("Saved", filename)
         i += 1
     elif key == 27:  # ESC
         break
