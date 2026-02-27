@@ -1,11 +1,186 @@
-Main repository for all files related to BFL project
+# BFL Capstone 2026
+Vehicle Damage Detection System
 
-Camera SDK - https://viswharajhospital-my.sharepoint.com/:f:/g/personal/1032200335_mitwpu_ac_in/ErZ0N7RIg9FLsZr3HRzcFCUBfQkm7v-97LgKMn3P0JHYtw?e=aU8UDU
+## Overview
 
-Dataset - https://viswharajhospital-my.sharepoint.com/:f:/g/personal/1032200335_mitwpu_ac_in/ElpGfB7jyQlNsGXRV-JwZAIBth2-UYBcWShbLTEKnGxXQg
+This project is a full-stack vehicle damage detection system developed for BFL Capstone 2026.
 
-The code to control the camera is written in Backend.py and Websocket.py in the backend folder
+The system consists of:
 
-uvcham.dll is the windows driver file and uvcham.py is the python library for the camera
+- Backend: Mask R-CNN based damage segmentation (Python)
+- Frontend: React + TypeScript application
+- WebSocket-based communication
+- Camera capture and result visualization
 
-MiiImageView Application inside the SDK is a standalone software that can be independently used to operate the camera. 
+---
+
+## Project Structure
+
+BFL_capstone2026/
+
+Backend/
+- Mask_RCNN-master/
+  - backend.py
+  - prediction.py
+  - websocket.py
+  - requirements.txt
+- uvcham.py
+
+frontend/
+- src/
+- package.json
+- package-lock.json
+
+.gitignore
+README.md
+
+---
+
+# Backend Setup (Conda Environment)
+
+## 1. Install Anaconda or Miniconda
+
+Download and install Anaconda or Miniconda from:
+
+https://www.anaconda.com/products/distribution
+
+Verify installation:
+
+conda --version
+
+---
+
+## 2. Create Conda Environment
+
+Create a new environment with Python 3.8 (recommended for Mask R-CNN compatibility):
+
+conda create -n bfl_env python=3.8
+
+---
+
+## 3. Activate Environment
+
+Windows:
+
+conda activate bfl_env
+
+Mac/Linux:
+
+conda activate bfl_env
+
+Verify Python version:
+
+python --version
+
+---
+
+## 4. Install Backend Dependencies
+
+Navigate to project root and run:
+
+pip install -r Backend/Mask_RCNN-master/requirements.txt
+
+If additional dependencies are required:
+
+pip install opencv-python numpy matplotlib pillow
+
+If using WebSocket:
+
+pip install websockets
+
+---
+
+## 5. Run Backend Server
+
+From project root:
+
+python Backend/Mask_RCNN-master/backend.py
+
+If WebSocket server is separate:
+
+python Backend/Mask_RCNN-master/websocket.py
+
+Ensure the backend runs without errors before starting frontend.
+
+---
+
+# Frontend Setup
+
+## 1. Install Node.js
+
+Download and install Node.js from:
+
+https://nodejs.org/
+
+Verify installation:
+
+node --version
+npm --version
+
+---
+
+## 2. Install Frontend Dependencies
+
+Navigate to frontend directory:
+
+cd frontend
+
+Install dependencies:
+
+npm install
+
+---
+
+## 3. Start Frontend Development Server
+
+npm start
+
+The frontend will run at:
+
+http://localhost:3000
+
+---
+
+# Running the Complete System
+
+1. Activate conda environment  
+2. Start backend server  
+3. Start WebSocket server (if applicable)  
+4. Start frontend server  
+5. Open browser at http://localhost:3000  
+
+---
+
+# Important Notes
+
+- Do not commit:
+  - virtual environments
+  - model weights (.h5 / .pth)
+  - datasets
+  - .dll files
+  - generated images
+- Ensure .gitignore is properly configured.
+- Use Python 3.8 for Mask R-CNN compatibility.
+
+---
+
+# Tech Stack
+
+Backend:
+- Python 3.8
+- Mask R-CNN
+- OpenCV
+- NumPy
+- WebSockets
+
+Frontend:
+- React
+- TypeScript
+- Node.js
+
+---
+
+# Author
+
+Sayli Dhuri  
+BFL Capstone 2026
