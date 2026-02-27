@@ -1,0 +1,9 @@
+venv_py38/
+venv/
+__pycache__/
+*.pyc
+*.jpg
+*.png
+*.dll
+.env
+node_modules/

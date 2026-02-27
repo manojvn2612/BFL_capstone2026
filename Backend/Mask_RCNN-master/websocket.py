@@ -1,30 +1,3 @@
-
-# import asyncio
-# import cv2
-# import websockets
-# import numpy as np
-# import uvcham
-
-# async def send_camera_feed(websocket, path):
-#     camera = cv2.VideoCapture(0)  # Open the camera (change index if multiple cameras)
-    
-#     while True:
-#         ret, frame = camera.read()  # Read a frame from the camera
-#         if not ret:
-#             break
-        
-#         # Convert the frame to JPEG format
-#         _, buffer = cv2.imencode('.jpg', frame)
-#         jpg_bytes = buffer.tobytes()
-        
-#         # Send the frame to the client over websocket
-#         await websocket.send(jpg_bytes)
-
-# async def start_server():
-#     async with websockets.serve(send_camera_feed, "localhost", 8765):
-#         await asyncio.Future()  # Run forever
-
-# asyncio.run(start_server())
 import asyncio
 import websockets
 import uvcham
@@ -33,86 +6,104 @@ import cv2
 import numpy as np
 import time
 
+
 class CameraStream:
     def __init__(self):
+        pythoncom.CoInitialize()
+
         self.hcam = None
         self.imgWidth = 0
         self.imgHeight = 0
         self.pData = None
-        self.frame = 0
-        self.count = 0
-        
 
-    async def open_camera(self):
+        self.open_camera()
+
+    def open_camera(self):
         arr = uvcham.Uvcham.enum()
+
         if len(arr) == 0:
-            print("No camera Found")
-        else: 
-            self.hcam = uvcham.Uvcham.open(arr[0].id)
-            print(dir(self.hcam))
-            print(self.hcam.pull.__doc__)
-            print('name = {} id = {}'.format(arr[0].displayname, arr[0].id))
-            if self.hcam:
-                self.frame = 0
-                res = self.hcam.get(uvcham.UVCHAM_RES)
-                self.hcam.put(uvcham.UVCHAM_FLIPVERT, 1)
-                self.imgWidth = self.hcam.get(uvcham.UVCHAM_WIDTH | res)
-                self.imgHeight = self.hcam.get(uvcham.UVCHAM_HEIGHT | res)
-                self.pData = bytes(uvcham.TDIBWIDTHBYTES(self.imgWidth * 24) * self.imgHeight)
-                try:
-                    self.hcam.start(None, self.cameraCallback, self)
-                    # self.hcam.put(uvcham.)
-                    # self.hcam.put(uvcham.)
-                except:
-                    self.closeCamera()
-                    print("Failed to start camera")
-                
+            print("❌ No uvcham camera detected")
+            return
 
+        print("✅ Using uvcham:", arr[0].displayname)
 
-    async def send_camera_feed(self, websocket, path):
-        await self.open_camera()
-        # task = asyncio.create_task(self.handle_client_messages(websocket)) 
+        self.hcam = uvcham.Uvcham.open(arr[0].id)
+
+        res = self.hcam.get(uvcham.UVCHAM_RES)
+
+        self.imgWidth = self.hcam.get(uvcham.UVCHAM_WIDTH | res)
+        self.imgHeight = self.hcam.get(uvcham.UVCHAM_HEIGHT | res)
+
+        self.pData = bytearray(
+            uvcham.TDIBWIDTHBYTES(self.imgWidth * 24) * self.imgHeight
+        )
+
+        self.hcam.start(None, self.camera_callback, self)
+
+        # Flash ON (adjust 0–100)
+        self.hcam.put(uvcham.UVCHAM_LIGHT_ADJUSTMENT, 80)
+        
+    async def stream(self, websocket, path):
+        print("📡 Client connected")
+
         try:
             while True:
-                if self.pData is not None:
-                    frame_array = bytearray(self.pData)
+                frame = self.get_frame()
 
-                    image_array = np.frombuffer(frame_array, dtype=np.uint8)
+                if frame:
+                    await websocket.send(frame)
 
-                    resized_image = cv2.resize(image_array.reshape((self.imgHeight, self.imgWidth, 3)), (1920, 1080))
+                await asyncio.sleep(0.03)
 
-                    _, buffer = cv2.imencode('.jpg', resized_image)
-                    img_bytes = buffer.tobytes()
-
-                    await websocket.send(img_bytes)
         except websockets.exceptions.ConnectionClosed:
-            print("Client closed connection.")
-        finally:
-            self.closeCamera()
+            print("Client disconnected")
 
-    def cameraCallback(self, nEvent, ctx):
-        if nEvent == uvcham.UVCHAM_EVENT_IMAGE and self.hcam is not None:
-            self.hcam.pull(self.pData)  # Pull Mode
+    def camera_callback(self, nEvent, ctx):
+        if nEvent == uvcham.UVCHAM_EVENT_IMAGE:
+            try:
+                self.hcam.pull(self.pData)
+                self.count += 1
+                print("Frame count:", self.count)
+            except:
+                pass
 
-    def closeCamera(self):
-        if self.hcam is not None:
-            self.hcam.close()
-            self.hcam = None
-            self.pData = None
+    def get_frame(self):
+        if self.pData is None:
+            return None
+
+        try:
+            frame = np.frombuffer(self.pData, dtype=np.uint8)
+
+            if frame.size != self.imgWidth * self.imgHeight * 3:
+                print("⚠️ Frame size mismatch")
+                return None
+
+            frame = frame.reshape((self.imgHeight, self.imgWidth, 3))
+
+            ret, encoded = cv2.imencode(".jpg", frame)
+            if not ret:
+                print("⚠️ Encoding failed")
+                return None
+
+            return encoded.tobytes()
+
+        except Exception as e:
+            print("❌ Frame error:", e)
+            return None
+
+
+# Global camera instance
+camera_stream = CameraStream()
 
 
 async def start_server():
-    global app
-    app = CameraStream()
-    pythoncom.CoInitialize()
-    async with websockets.serve(app.send_camera_feed, "localhost", 8765):
-        await asyncio.Future()  # Run forever
+    print("🚀 WebSocket server started on ws://localhost:8765")
+    async with websockets.serve(camera_stream.stream, "localhost", 8765):
+        await asyncio.Future()
+
 
 def get_image():
-   if app.pData is not None:
-                _, encoded_image = cv2.imencode('.jpg', np.frombuffer(app.pData, dtype=np.uint8).reshape((app.imgHeight, app.imgWidth, 3)))
-                return encoded_image
-
-
-
-
+    frame = camera_stream.get_frame()
+    if frame:
+        return np.frombuffer(frame, dtype=np.uint8)
+    return None

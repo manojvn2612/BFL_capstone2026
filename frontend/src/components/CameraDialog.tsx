@@ -16,39 +16,39 @@ interface CameraDialogProps {
 }
 
 const CameraDialog = ({socketData} : CameraDialogProps) => {
-  let ws: WebSocket | null = null;
+  // let ws: WebSocket | null = null;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Initialize WebSocket connection
-    ws = new WebSocket("ws://localhost:8765");
+  // useEffect(() => {
+  //   // Initialize WebSocket connection
+  //   ws = new WebSocket("ws://localhost:8765");
 
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-    };
+  //   ws.onopen = () => {
+  //   console.log("WebSocket connected");
+  // };
 
-    ws.onmessage = (event) => {
-      // Handle received messages
-      const imgdata = event.data;
-      renderImage(imgdata);
-      // Assuming the message contains image data, decode/process it and render on canvas
+  //   ws.onmessage = (event) => {
+  //     // Handle received messages
+  //     const imgdata = event.data;
+  //     renderImage(imgdata);
+  //     // Assuming the message contains image data, decode/process it and render on canvas
      
-    };
+  // };
 
-    ws.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
+  //   ws.onclose = () => {
+  //   console.log("WebSocket disconnected");
+  // };
 
-    // Clean-up function to close the WebSocket connection when the component unmounts
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-    };
-
-  }, []); // Empty dependency array ensures this effect runs only once when the component mounts
+  //   // Clean-up function to close the WebSocket connection when the component unmounts
+  // return () => {
+  //     if (ws) {
+  //       ws.close();
+  //     }
+  // };
+ 
+  // }, []); // Empty dependency array ensures this effect runs only once when the component mounts
 
   const renderImage = (imageData: any) => {
     if (canvasRef.current) {
@@ -63,25 +63,67 @@ const CameraDialog = ({socketData} : CameraDialogProps) => {
     }
   };
   
-  const clickPhoto = async () => {
-    setLoading(true);
-    try {
-      // Make a GET request to the Flask server to capture the photo
-      const res = await axios.get('http://127.0.0.1:5000/predict');
-      console.log(res.data);
-      console.log(res.data.predicted_image);
+  // const clickPhoto = async () => {
+  //   setLoading(true);
+  //   try {
+  //     // Make a GET request to the Flask server to capture the photo
+  //     const res = await axios.get('http://127.0.0.1:5000/predict');
+  //     console.log(res.data);
+  //     console.log(res.data.predicted_image);
 
-      const src = "data:image/jpeg;base64," + res.data.predicted_image;
-      if (ws) {
-        ws.close();
-      }
-      navigate(
-        "/results", 
-        { state: { imgSrc: src, imgClasses: res.data.classes } }
-      );
-    } catch (error) {
-      console.error('Error capturing photo from camera:', error);
+  //     const src = "data:image/jpeg;base64," + res.data.predicted_image;
+  //     if (ws) {
+  //       ws.close();
+  //     }
+  //     navigate(
+  //       "/results", 
+  //       { state: { imgSrc: src, imgClasses: res.data.classes } }
+  //     );
+  //   } catch (error) {
+  //     console.error('Error capturing photo from camera:', error);
+  //   }
+  //   setLoading(false);
+  // };
+  const clickPhoto = async () => {
+    if (!socketData.img) {
+      console.error("No image available");
+      return;
     }
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+
+      // Convert base64 to Blob
+      const response = await fetch(socketData.img);
+      const blob = await response.blob();
+
+      formData.append("image", blob, "upload.jpg");
+
+      const res = await axios.post(
+        "http://127.0.0.1:5000/predict",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
+
+      const src = "data:image/png;base64," + res.data.predicted_image;
+
+      navigate("/results", {
+        state: {
+          imgSrc: src,
+          imgClasses: res.data.classes
+        }
+      });
+
+    } catch (error) {
+      console.error("Prediction error:", error);
+    }
+
     setLoading(false);
   };
 
@@ -92,7 +134,13 @@ const CameraDialog = ({socketData} : CameraDialogProps) => {
         <DialogTitle className="flex items-center justify-center text-3xl font-bold text-slate-800">Take a Photo</DialogTitle>
         <DialogDescription>
           <div className="flex flex-col pt-8 gap-4">
-            <canvas className="w-full h-full border-8 border-surface rounded-xl" ref={canvasRef}/>
+            {socketData.img && (
+                <img
+                  src={socketData.img}
+                  className="w-full h-auto rounded-xl"
+                  alt="Uploaded Preview"
+                />
+              )}
             <p>{socketData.name}</p>
             <div className="w-full flex items-center justify-center gap-4">
               <Button variant='default' size='default' className="flex gap-2  text-white font-semibold">

@@ -70,7 +70,7 @@ def initalize_model():
 
     # Get path to saved weights
     # Either set a specific path or find last trained weights
-    model_path = os.path.join(ROOT_DIR, "mask_rcnn_bfl_0020_res4.h5")
+    model_path = os.path.join("",r"C:\Users\admin\Documents\NON_OFFICE\BFL\bfl-project-repo\Backend\Mask_RCNN-master\mask_rcnn_bfl_0020_res4.h5")
     #model_path = model.find_last()
 
     # Load trained weights
@@ -97,12 +97,29 @@ def predict(image):
             
     # img = np.array(image)
     # img = np.fliplr(img)
-        img  =  visualize.display_instances(image_array, r['rois'], r['masks'], r['class_ids'], 
-                            class_names, r['scores'], show_mask=False, ax=get_ax())
-        print(type(img))
-        print(img)
-        print(r['class_ids'])
-        return img, r['class_ids']
+        fig = visualize.display_instances(
+        image_array,
+        r['rois'],
+        r['masks'],
+        r['class_ids'],
+        class_names,
+        r['scores'],
+        show_mask=False,
+        ax=get_ax()
+)
+
+        # Convert matplotlib figure to numpy image
+        fig.canvas.draw()
+
+        predicted_img = np.frombuffer(
+            fig.canvas.tostring_rgb(), dtype=np.uint8
+        )
+
+        predicted_img = predicted_img.reshape(
+            fig.canvas.get_width_height()[::-1] + (3,)
+        )
+
+        return predicted_img, r['class_ids']
     except Exception as e:
         print(e)
         traceback.print_exc()

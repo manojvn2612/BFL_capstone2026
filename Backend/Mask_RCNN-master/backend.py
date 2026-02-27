@@ -1,133 +1,84 @@
-import asyncio
-import threading
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from PIL import Image
-import io
 import base64
-import matplotlib.pyplot as plt
 import prediction
 import cv2
-import websocket
+import numpy as np
 import traceback
 
-# Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
-# Define the Flask route
-@app.route('/predict', methods=['POST', 'GET'])
+@app.route('/predict-batch', methods=['POST'])
+def predict_batch():
+    try:
+        files = request.files.getlist("images")
+
+        if not files:
+            return jsonify({"error": "No images provided"}), 400
+
+        batch_results = []
+
+        for file in files:
+            file_bytes = np.frombuffer(file.read(), np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+            predicted_image, classes = prediction.predict(image)
+
+            _, buffer = cv2.imencode('.png', predicted_image)
+            img_base64 = base64.b64encode(buffer).decode('utf-8')
+
+            batch_results.append({
+                "predicted_image": img_base64,
+                "classes": classes.tolist()
+            })
+
+        return jsonify(batch_results)
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+        
+@app.route('/predict', methods=['POST'])
 def predict_route():
-    #Predict by file upload
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part'})
+    try:
+        if 'image' not in request.files:
+            return jsonify({"error": "No image file provided"})
 
-        file = request.files['file']
-        print(type(file))
-        
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'})
+        file = request.files['image']
 
-        try:
-            image = Image.open(io.BytesIO(file.read()))
-            print("image opened")
-            predicted_image, classes = prediction.predict(image)
-            print("done prediction")
-            img_byte_arr = io.BytesIO()
-            # predicted_image = Image.fromarray(predicted_image)
-            print(type(predicted_image))
-            predicted_image.savefig(img_byte_arr, format='PNG')
-            img_byte_arr.seek(0)  # Move to the beginning of the byte stream
+        image = cv2.imdecode(
+            np.frombuffer(file.read(), np.uint8),
+            cv2.IMREAD_COLOR
+        )
 
-            # Encode the PNG image data as base64
-            img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+        if image is None:
+            return jsonify({"error": "Failed to decode uploaded image"})
 
-            # Close the figure to release resources
-            plt.close(predicted_image)
-            return jsonify({'predicted_image': img_base64, 'classes': classes.tolist()})
+        predicted_image, classes = prediction.predict(image)
 
-        except Exception as e:
-            print(e)
-            return jsonify({'error': str(e)})
-        
-    #Predict by pulling image from the camera    
-    if request.method == 'GET':
-        input_img = websocket.get_image()
-        print(type(input_img))
-        try:
-            image = cv2.imdecode(input_img, cv2.IMREAD_COLOR) 
-            print("image opened")
-            predicted_image, classes = prediction.predict(image)
-            print("done prediction")
-            img_byte_arr = io.BytesIO()
-            # predicted_image = Image.fromarray(predicted_image)
-            print(type(predicted_image))
+        # Save input and output (optional)
+        cv2.imwrite("uploaded_input.jpg", image)
 
-            predicted_image.savefig(img_byte_arr, format='PNG')
-            img_byte_arr.seek(0)  # Move to the beginning of the byte stream
+        if predicted_image is not None:
+            cv2.imwrite("prediction_output.png", predicted_image)
 
-            # Encode the PNG image data as base64
-            img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+        _, buffer = cv2.imencode('.png', predicted_image)
+        img_base64 = base64.b64encode(buffer).decode('utf-8')
 
-            # Close the figure to release resources
-            plt.close(predicted_image)
-            return jsonify({'predicted_image': img_base64, 'classes': classes.tolist()})
+        return jsonify({
+            'predicted_image': img_base64,
+            'classes': classes.tolist()
+        })
 
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
-            return jsonify({'error': str(e)})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)})
 
-
-# Function to start the WebSocket server
-async def start_websocket_server():
-    await websocket.start_server()
-
-# Function to run Flask app
-def run_flask_app():
-    app.run(debug=True, use_reloader=False)
-
-# Main function to run both servers concurrently
-
-    # Create a new event loop for asyncio tasks
-    # try:
-    #     loop = asyncio.new_event_loop()
-    #     asyncio.set_event_loop(loop)
-        
-        # Start the WebSocket server in the event loop
-        # websocket_task = asyncio.ensure_future(start_websocket_server(), loop=loop)
-
-    #   prediction.initalize_model()
-        
-    #     # Start Flask app in a new thread
-    #     flask_thread = threading.Thread(target=run_flask_app)
-    #     flask_thread.start()
-        
-    #     # Run the event loop until completion
-    #     loop.run_until_complete(websocket_task)
-    #     flask_thread.join()
-    # except Exception as e:
-    #     print(e)
-    
 
 if __name__ == '__main__':
-    # Create a new event loop for asyncio tasks
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        # Start the WebSocket server in the event loop
-        websocket_task = asyncio.ensure_future(start_websocket_server(), loop=loop)
+    print("Initializing model...")
+    prediction.initalize_model()
+    print("Model loaded successfully.")
 
-        prediction.initalize_model()
-        
-        # Start Flask app in a new thread
-        flask_thread = threading.Thread(target=run_flask_app)
-        flask_thread.start()
-        
-        # Run the event loop until completion
-        loop.run_until_complete(websocket_task)
-        flask_thread.join()
-    except Exception as e:
-        print(e)
+    app.run(debug=False, port=5000)
