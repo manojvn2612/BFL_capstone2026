@@ -1,3 +1,6 @@
 data*/
 *.zip
 *_venv/
+*.env/
+*2026*
+__pycache__/
