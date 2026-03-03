@@ -8,7 +8,7 @@ from pathlib import Path
 dotenv.load_dotenv()
 os.environ["DJANGO_ALLOWED_HOSTS"] = os.getenv("DJANGO_ALLOWED_HOSTS")
 os.environ["CSRF_TRUSTED_ORIGINS"] = os.getenv("CSRF_TRUSTED_ORIGINS")
-os.environ['secret_key'] = os.getenv("secret_key")
+os.environ['SECRET_KEY'] = os.getenv("secret_key")
 #show the folder
 data_path = os.getenv("data_path") #who ever is seeing this if u are using this inside the github repo pls dont change i have added it into .gitignore
 DATA_DIR = Path(data_path)

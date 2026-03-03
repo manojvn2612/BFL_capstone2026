@@ -1,6 +1,7 @@
 data*/
 *.zip
 *_venv/
-*.env/
+*.env
 *2026*
 __pycache__/
+Py_3_8_0/
