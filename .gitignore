@@ -1,7 +1,10 @@
 data*/
 *.zip
-*_venv/
+*venv*/
 *.env
 *2026*
 __pycache__/
-Py_3_8_0/
+*node_modules*/
+*logs*/
+*.log
+*cache*/
