@@ -3,7 +3,7 @@ Plane blade Damage Detection System
 
 ## Overview
 
-This project is a full-stack plane blade damage detection system developed for BFL Capstone 2026.
+This project is a full-stack plane engine blade damage detection system developed for BFL Capstone 2026.
 
 The system consists of:
 
