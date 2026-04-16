@@ -18,6 +18,7 @@ label_studio_process = subprocess.Popen(
     ["label-studio", "start", "--port", "8080"]
 )
 #connect to ngrok for public url (i'll send the .env file if u want on github or just ping me :) )
+USE_ENFORCE_CSRF_CHECKS=False
 NGROK_AUTH_TOKEN = os.getenv("ng_grok_auth_token") 
 if not NGROK_AUTH_TOKEN:
     raise ValueError("ng_grok_auth_token not found in .env")

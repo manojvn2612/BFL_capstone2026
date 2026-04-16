@@ -8,3 +8,6 @@ __pycache__/
 *logs*/
 *.log
 *cache*/
+uvchamsdk.20250722/
+labelstudio*/
+*.json
