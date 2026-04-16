@@ -18,6 +18,13 @@ label_studio_process = subprocess.Popen(
     ["label-studio", "start", "--port", "8080"]
 )
 #connect to ngrok for public url (i'll send the .env file if u want on github or just ping me :) )
+'''keep the structure as
+ng_grok_auth_token = "<ur auth token from ngrok>" 
+data_path = "path to the folder where u want to save the data for label studio"
+secret_key = "BFL"
+CSRF_TRUSTED_ORIGINS = "<link u will get when u run labeling.py for the first time after setting up ngrok so copy it and paste it here in .env>"
+DJANGO_ALLOWED_HOSTS = "*" #keep it same for development but for production change it to the url of your server
+'''
 USE_ENFORCE_CSRF_CHECKS=False
 NGROK_AUTH_TOKEN = os.getenv("ng_grok_auth_token") 
 if not NGROK_AUTH_TOKEN:
